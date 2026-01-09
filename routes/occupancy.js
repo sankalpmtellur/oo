@@ -5,6 +5,13 @@ const router = express.Router();
 router.post('/update', async (req, res) => {
   try {
     const prisma = req.prisma;
+    if (!prisma) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database client not initialized'
+      });
+    }
+
     const { roomId, peopleCount } = req.body;
 
     // Validate input
@@ -61,6 +68,13 @@ router.post('/update', async (req, res) => {
 router.get('/classroom/:roomId', async (req, res) => {
   try {
     const prisma = req.prisma;
+    if (!prisma) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database client not initialized'
+      });
+    }
+
     const { roomId } = req.params;
 
     const classroom = await prisma.classroom.findUnique({
@@ -108,6 +122,13 @@ router.get('/classroom/:roomId', async (req, res) => {
 router.get('/classroom/:roomId/history', async (req, res) => {
   try {
     const prisma = req.prisma;
+    if (!prisma) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database client not initialized'
+      });
+    }
+
     const { roomId } = req.params;
     const { limit = 100, offset = 0 } = req.query;
 
@@ -155,6 +176,13 @@ router.get('/classroom/:roomId/history', async (req, res) => {
 router.get('/all', async (req, res) => {
   try {
     const prisma = req.prisma;
+    if (!prisma) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database client not initialized'
+      });
+    }
+
     const classrooms = await prisma.classroom.findMany({
       include: {
         occupancy: {

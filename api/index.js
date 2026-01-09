@@ -1,61 +1,55 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { PrismaClient } = require('@prisma/client');
 
 const app = express();
-
-// Initialize Prisma Client with proper configuration for serverless
-let prisma;
-
-const getPrisma = () => {
-  if (!prisma) {
-    prisma = new PrismaClient({
-      log: ['error', 'warn'],
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL,
-        },
-      },
-    });
-  }
-  return prisma;
-};
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
+// Lazy load Prisma to avoid connection issues during import
+let prismaClient;
+
+const getPrismaClient = () => {
+  if (!prismaClient) {
+    const { PrismaClient } = require('@prisma/client');
+    prismaClient = new PrismaClient();
+  }
+  return prismaClient;
+};
+
 // Import routes
 const occupancyRoutes = require('../routes/occupancy');
 
-// Routes
+// Health check endpoint (no database required)
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'Server is running', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    timestamp: new Date().toISOString()
   });
 });
 
-// Favicon - return 204 No Content to avoid 500 errors
+// Favicon
 app.get('/favicon.ico', (req, res) => {
   res.status(204).end();
 });
 
-// Occupancy routes
+// Middleware to inject Prisma client
 app.use('/api/occupancy', (req, res, next) => {
-  req.prisma = getPrisma();
+  req.prisma = getPrismaClient();
   next();
-}, occupancyRoutes);
+});
 
-// Error handling middleware
+// Routes
+app.use('/api/occupancy', occupancyRoutes);
+
+// Error handling
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(500).json({
     success: false,
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred'
+    message: 'Internal server error'
   });
 });
 
@@ -67,25 +61,13 @@ app.use((req, res) => {
   });
 });
 
-// For local development
+// Local development
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, '0.0.0.0', async () => {
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      console.log('✓ Database connected successfully');
-      console.log(`✓ Server running on http://0.0.0.0:${PORT}`);
-    } catch (error) {
-      console.error('✗ Database connection failed:', error);
-      process.exit(1);
-    }
-  });
-
-  process.on('SIGINT', async () => {
-    await prisma.$disconnect();
-    process.exit();
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✓ Server running on http://0.0.0.0:${PORT}`);
   });
 }
 
-// Export for Vercel serverless
+// Export for Vercel
 module.exports = app;
