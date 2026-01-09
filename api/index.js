@@ -5,14 +5,22 @@ const { PrismaClient } = require('@prisma/client');
 
 const app = express();
 
-// Initialize Prisma with connection pooling for serverless
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
-  },
-});
+// Initialize Prisma Client with proper configuration for serverless
+let prisma;
+
+const getPrisma = () => {
+  if (!prisma) {
+    prisma = new PrismaClient({
+      log: ['error', 'warn'],
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL,
+        },
+      },
+    });
+  }
+  return prisma;
+};
 
 // Middleware
 app.use(cors());
@@ -23,7 +31,11 @@ const occupancyRoutes = require('../routes/occupancy');
 
 // Routes
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'Server is running', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'Server is running', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Favicon - return 204 No Content to avoid 500 errors
@@ -32,7 +44,10 @@ app.get('/favicon.ico', (req, res) => {
 });
 
 // Occupancy routes
-app.use('/api/occupancy', occupancyRoutes);
+app.use('/api/occupancy', (req, res, next) => {
+  req.prisma = getPrisma();
+  next();
+}, occupancyRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

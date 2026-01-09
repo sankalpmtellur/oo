@@ -13,6 +13,12 @@ const occupancyRoutes = require('./routes/occupancy');
 app.use(cors());
 app.use(express.json());
 
+// Pass Prisma instance to routes via middleware
+app.use((req, res, next) => {
+  req.prisma = prisma;
+  next();
+});
+
 // Routes
 app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running' });

@@ -1,11 +1,10 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // POST - Update occupancy data from ESP8266
 router.post('/update', async (req, res) => {
   try {
+    const prisma = req.prisma;
     const { roomId, peopleCount } = req.body;
 
     // Validate input
@@ -61,6 +60,7 @@ router.post('/update', async (req, res) => {
 // GET - Get current occupancy for a classroom
 router.get('/classroom/:roomId', async (req, res) => {
   try {
+    const prisma = req.prisma;
     const { roomId } = req.params;
 
     const classroom = await prisma.classroom.findUnique({
@@ -107,6 +107,7 @@ router.get('/classroom/:roomId', async (req, res) => {
 // GET - Get occupancy history for a classroom
 router.get('/classroom/:roomId/history', async (req, res) => {
   try {
+    const prisma = req.prisma;
     const { roomId } = req.params;
     const { limit = 100, offset = 0 } = req.query;
 
@@ -153,6 +154,7 @@ router.get('/classroom/:roomId/history', async (req, res) => {
 // GET - Get all classrooms with current occupancy
 router.get('/all', async (req, res) => {
   try {
+    const prisma = req.prisma;
     const classrooms = await prisma.classroom.findMany({
       include: {
         occupancy: {
