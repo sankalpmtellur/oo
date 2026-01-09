@@ -26,6 +26,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running', timestamp: new Date().toISOString() });
 });
 
+// Favicon - return 204 No Content to avoid 500 errors
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
+
 // Occupancy routes
 app.use('/api/occupancy', occupancyRoutes);
 
